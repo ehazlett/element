@@ -34,7 +34,6 @@ func (a *Agent) NotifyJoin(n *memberlist.Node) {
 
 // NotifyLeave notifies when a node leaves the cluster
 func (a *Agent) NotifyLeave(n *memberlist.Node) {
-	delete(a.state.Peers, n.Name)
 	a.peerUpdateChan <- true
 	a.send(&NodeEvent{
 		Type: NodeLeave,

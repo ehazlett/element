@@ -29,11 +29,11 @@ type Agent struct {
 	nodeEventChan      chan *NodeEvent
 	registeredServices map[string]struct{}
 	memberConfig       *memberlist.Config
-	state              *State
+	metadata           *Metadata
 }
 
 // NewAgent returns a new node agent
-func NewAgent(info *Peer, cfg *Config) (*Agent, error) {
+func NewAgent(cfg *Config) (*Agent, error) {
 	var (
 		updateCh    = make(chan bool, 64)
 		nodeEventCh = make(chan *NodeEvent, 64)
@@ -43,10 +43,7 @@ func NewAgent(info *Peer, cfg *Config) (*Agent, error) {
 		config:         cfg,
 		peerUpdateChan: updateCh,
 		nodeEventChan:  nodeEventCh,
-		state: &State{
-			Self:  info,
-			Peers: make(map[string]*Peer),
-		},
+		metadata:       &Metadata{},
 	}
 	mc, err := cfg.memberListConfig(a)
 	if err != nil {
@@ -69,7 +66,7 @@ func (a *Agent) SyncInterval() time.Duration {
 
 // Update updates the agent payload
 func (a *Agent) Update(payload *types.Any) {
-	a.state.Self.Payload = payload
+	a.metadata.Payload = payload
 }
 
 func newSubscribers() *subscribers {

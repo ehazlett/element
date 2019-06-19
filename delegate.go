@@ -9,7 +9,7 @@ import (
 
 // NodeMeta returns local node meta information
 func (a *Agent) NodeMeta(limit int) []byte {
-	data, err := proto.Marshal(a.state)
+	data, err := proto.Marshal(a.metadata)
 	if err != nil {
 		logrus.Errorf("error serializing node meta: %s", err)
 	}
@@ -28,7 +28,7 @@ func (a *Agent) GetBroadcasts(overhead, limit int) [][]byte {
 
 // LocalState is the local cluster agent state
 func (a *Agent) LocalState(join bool) []byte {
-	data, err := proto.Marshal(a.state)
+	data, err := proto.Marshal(a.metadata)
 	if err != nil {
 		logrus.Errorf("error serializing local state: %s", err)
 	}
@@ -37,13 +37,13 @@ func (a *Agent) LocalState(join bool) []byte {
 
 // MergeRemoteState is used to store remote peer information
 func (a *Agent) MergeRemoteState(buf []byte, join bool) {
-	var state State
-	if err := proto.Unmarshal(buf, &state); err != nil {
-		logrus.Errorf("error parsing remote agent state: %s", err)
+	var meta Metadata
+	if err := proto.Unmarshal(buf, &meta); err != nil {
+		logrus.Errorf("error parsing remote agent meta: %s", err)
 		return
 	}
-	a.state.Updated = time.Now()
-	a.state.Peers[state.Self.ID] = state.Self
+	logrus.Debugf("merge remote state: %+v", meta)
+	a.metadata.Updated = time.Now()
 	// notify update
 	a.peerUpdateChan <- true
 }

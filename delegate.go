@@ -3,7 +3,9 @@ package element
 import (
 	"time"
 
+	"github.com/containerd/typeurl"
 	"github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,7 +21,25 @@ func (a *Agent) NodeMeta(limit int) []byte {
 // NotifyMsg is used for handling cluster messages
 func (a *Agent) NotifyMsg(buf []byte) {
 	// this can be used to receive messages sent (i.e. SendReliable)
-	logrus.Debugf("element: notify msg %s", string(buf))
+	t := &types.Any{}
+	if err := t.Unmarshal(buf); err != nil {
+		logrus.Errorf("error unmarshalling proto message: %s")
+		return
+	}
+	v, err := typeurl.UnmarshalAny(t)
+	if err != nil {
+		logrus.Errorf("error unmarshalling from any: %s", err)
+		return
+	}
+	h, ok := a.messageHandlers[t.TypeUrl]
+	if !ok {
+		logrus.Warnf("no message handler for type %s", t.TypeUrl)
+		return
+	}
+	if err := h(v); err != nil {
+		logrus.Errorf("error from message handler for type %s: %s", t.TypeUrl, err)
+		return
+	}
 }
 
 // GetBroadcasts is called when user messages can be broadcast

@@ -1,9 +1,11 @@
 package element
 
 import (
+	fmt "fmt"
 	"sync"
 	"time"
 
+	"github.com/containerd/typeurl"
 	"github.com/gogo/protobuf/types"
 	"github.com/hashicorp/memberlist"
 	"github.com/pkg/errors"
@@ -30,6 +32,7 @@ type Agent struct {
 	registeredServices map[string]struct{}
 	memberConfig       *memberlist.Config
 	metadata           *Metadata
+	messageHandlers    map[string]func(interface{}) error
 }
 
 // NewAgent returns a new node agent
@@ -39,11 +42,12 @@ func NewAgent(cfg *Config) (*Agent, error) {
 		nodeEventCh = make(chan *NodeEvent, 64)
 	)
 	a := &Agent{
-		subscribers:    newSubscribers(),
-		config:         cfg,
-		peerUpdateChan: updateCh,
-		nodeEventChan:  nodeEventCh,
-		metadata:       &Metadata{},
+		subscribers:     newSubscribers(),
+		config:          cfg,
+		peerUpdateChan:  updateCh,
+		nodeEventChan:   nodeEventCh,
+		metadata:        &Metadata{},
+		messageHandlers: make(map[string]func(interface{}) error),
 	}
 	mc, err := cfg.memberListConfig(a)
 	if err != nil {
@@ -70,8 +74,26 @@ func (a *Agent) Update(payload *types.Any) {
 }
 
 // Send sends a message to the specified node
-func (a *Agent) Send(n *Node, data []byte) error {
+// **Note: `v` must be registered (typeurl.Register)
+func (a *Agent) Send(n *Node, v interface{}) error {
+	any, err := typeurl.MarshalAny(v)
+	if err != nil {
+		return err
+	}
+	data, err := any.Marshal()
+	if err != nil {
+		return err
+	}
 	return a.members.SendReliable(n.Node, data)
+}
+
+// RegisterMessageHandler registers a handler func for the specified type url for cluster messages
+func (a *Agent) RegisterMessageHandler(url string, f func(v interface{}) error) error {
+	if _, exists := a.messageHandlers[url]; exists {
+		return fmt.Errorf("message handler exists for url %s", url)
+	}
+	a.messageHandlers[url] = f
+	return nil
 }
 
 func newSubscribers() *subscribers {

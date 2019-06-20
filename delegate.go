@@ -19,6 +19,7 @@ func (a *Agent) NodeMeta(limit int) []byte {
 // NotifyMsg is used for handling cluster messages
 func (a *Agent) NotifyMsg(buf []byte) {
 	// this can be used to receive messages sent (i.e. SendReliable)
+	logrus.Debugf("element: notify msg %s", string(buf))
 }
 
 // GetBroadcasts is called when user messages can be broadcast

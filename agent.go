@@ -1,12 +1,12 @@
 package element
 
 import (
-	"errors"
 	"sync"
 	"time"
 
 	"github.com/gogo/protobuf/types"
 	"github.com/hashicorp/memberlist"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -69,6 +69,11 @@ func (a *Agent) Update(payload *types.Any) {
 	a.metadata.Payload = payload
 }
 
+// Send sends a message to the specified node
+func (a *Agent) Send(n *Node, data []byte) error {
+	return a.members.SendReliable(n.Node, data)
+}
+
 func newSubscribers() *subscribers {
 	return &subscribers{
 		subs: make(map[chan *NodeEvent]struct{}),
@@ -76,8 +81,7 @@ func newSubscribers() *subscribers {
 }
 
 type subscribers struct {
-	mu sync.Mutex
-
+	mu   sync.Mutex
 	subs map[chan *NodeEvent]struct{}
 }
 

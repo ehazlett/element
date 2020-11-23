@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package io.stellar.element.v1;
+package io.element.v1;
 
 import weak "gogoproto/gogo.proto";
 import "google/protobuf/any.proto";

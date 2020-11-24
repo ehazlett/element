@@ -1,14 +1,12 @@
 package element
 
 import (
-	fmt "fmt"
+	"errors"
 	"sync"
 	"time"
 
-	"github.com/containerd/typeurl"
 	"github.com/gogo/protobuf/types"
 	"github.com/hashicorp/memberlist"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -31,23 +29,24 @@ type Agent struct {
 	nodeEventChan      chan *NodeEvent
 	registeredServices map[string]struct{}
 	memberConfig       *memberlist.Config
-	metadata           *Metadata
-	messageHandlers    map[string]func(interface{}) error
+	state              *State
 }
 
 // NewAgent returns a new node agent
-func NewAgent(cfg *Config) (*Agent, error) {
+func NewAgent(info *Peer, cfg *Config) (*Agent, error) {
 	var (
 		updateCh    = make(chan bool, 64)
 		nodeEventCh = make(chan *NodeEvent, 64)
 	)
 	a := &Agent{
-		subscribers:     newSubscribers(),
-		config:          cfg,
-		peerUpdateChan:  updateCh,
-		nodeEventChan:   nodeEventCh,
-		metadata:        &Metadata{},
-		messageHandlers: make(map[string]func(interface{}) error),
+		subscribers:    newSubscribers(),
+		config:         cfg,
+		peerUpdateChan: updateCh,
+		nodeEventChan:  nodeEventCh,
+		state: &State{
+			Self:    info,
+			Updated: time.Now(),
+		},
 	}
 	mc, err := cfg.memberListConfig(a)
 	if err != nil {
@@ -70,30 +69,7 @@ func (a *Agent) SyncInterval() time.Duration {
 
 // Update updates the agent payload
 func (a *Agent) Update(payload *types.Any) {
-	a.metadata.Payload = payload
-}
-
-// Send sends a message to the specified node
-// **Note: `v` must be registered (typeurl.Register)
-func (a *Agent) Send(n *Node, v interface{}) error {
-	any, err := typeurl.MarshalAny(v)
-	if err != nil {
-		return err
-	}
-	data, err := any.Marshal()
-	if err != nil {
-		return err
-	}
-	return a.members.SendReliable(n.Node, data)
-}
-
-// RegisterMessageHandler registers a handler func for the specified type url for cluster messages
-func (a *Agent) RegisterMessageHandler(url string, f func(v interface{}) error) error {
-	if _, exists := a.messageHandlers[url]; exists {
-		return fmt.Errorf("message handler exists for url %s", url)
-	}
-	a.messageHandlers[url] = f
-	return nil
+	a.state.Self.Payload = payload
 }
 
 func newSubscribers() *subscribers {
@@ -103,7 +79,8 @@ func newSubscribers() *subscribers {
 }
 
 type subscribers struct {
-	mu   sync.Mutex
+	mu sync.Mutex
+
 	subs map[chan *NodeEvent]struct{}
 }
 

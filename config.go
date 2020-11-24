@@ -23,8 +23,6 @@ const (
 
 // Config is the agent config
 type Config struct {
-	// ID is the id of the node (usually hostname)
-	ID string
 	// ConnectionType is the connection type the agent will use
 	ConnectionType string
 	// ClusterAddress bind address
@@ -54,7 +52,7 @@ func (cfg *Config) memberListConfig(a *Agent) (*memberlist.Config, error) {
 		return nil, ErrUnknownConnectionType
 	}
 
-	mc.Name = cfg.ID
+	mc.Name = a.state.Self.ID
 	mc.Delegate = a
 	mc.Events = a
 

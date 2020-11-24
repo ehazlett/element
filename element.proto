@@ -1,12 +1,19 @@
 syntax = "proto3";
 
-package io.element.v1;
+package io.stellar.element.v1;
 
 import weak "gogoproto/gogo.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
-message Metadata {
-	google.protobuf.Timestamp updated = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
-	google.protobuf.Any payload = 2;
+message Peer {
+	string id = 1 [(gogoproto.customname) = "ID"];
+	string address = 2;
+	map<string, string> labels = 3;
+	google.protobuf.Any payload = 4;
+}
+
+message State {
+	Peer self = 1;
+	google.protobuf.Timestamp updated = 2 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
 }

@@ -1,4 +1,4 @@
-module github.com/stellarproject/element
+module github.com/ehazlett/element
 
 go 1.14
 

@@ -18,7 +18,11 @@ func (a *Agent) Start() error {
 	if len(a.config.Peers) > 0 {
 		doneCh := make(chan bool)
 		go func() {
+			timeout := time.Now().Add(a.config.LeaderPromotionTimeout)
 			for {
+				if time.Now().After(timeout) {
+					return
+				}
 				if _, err := a.members.Join(a.config.Peers); err != nil {
 					logrus.WithError(err).Warn("unable to join")
 					time.Sleep(1 * time.Second)

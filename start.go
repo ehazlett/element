@@ -19,7 +19,6 @@ func (a *Agent) Start() error {
 		doneCh := make(chan bool)
 		go func() {
 			for {
-				logrus.Debugf("attempting to join peers...")
 				if _, err := a.members.Join(a.config.Peers); err != nil {
 					logrus.WithError(err).Warn("unable to join")
 					time.Sleep(1 * time.Second)

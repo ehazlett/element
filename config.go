@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/memberlist"
 )
@@ -31,6 +32,9 @@ type Config struct {
 	AdvertiseAddress string
 	// Peers is a local cache of peer members
 	Peers []string
+	// LeaderPromotionTimeout is the duration to wait to join a list
+	// of peers before self-promoting to leader
+	LeaderPromotionTimeout time.Duration
 	// Debug output for memberlist
 	Debug bool
 }

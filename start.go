@@ -1,6 +1,8 @@
 package element
 
 import (
+	"time"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -14,8 +16,25 @@ func (a *Agent) Start() error {
 		}
 	}()
 	if len(a.config.Peers) > 0 {
-		if _, err := a.members.Join(a.config.Peers); err != nil {
-			return err
+		doneCh := make(chan bool)
+		go func() {
+			for {
+				logrus.Debugf("attempting to join peers...")
+				if _, err := a.members.Join(a.config.Peers); err != nil {
+					logrus.WithError(err).Warn("unable to join")
+					time.Sleep(1 * time.Second)
+					continue
+				}
+				break
+			}
+			doneCh <- true
+		}()
+
+		select {
+		case <-time.After(a.config.LeaderPromotionTimeout):
+			logrus.Infof("timeout (%s) trying to join peers; self-electing as leader", a.config.LeaderPromotionTimeout)
+		case <-doneCh:
+			logrus.Infof("joined peers %s", a.config.Peers)
 		}
 	}
 	return nil
